@@ -1,0 +1,85 @@
+# pyproject.toml — project manifest (PEP 621)
+# This file declares the project metadata, dependencies, and build configuration.
+# It replaces the older setup.py / setup.cfg / requirements.txt combo.
+
+[build-system]
+# `requires` lists the build-time dependencies (only used to package the project,
+# not to run it). `build-backend` tells pip which tool to invoke to build the
+# project. Hatchling is the modern PyPA-recommended choice.
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+# The distribution name on PyPI (use dashes for the package distribution name).
+# The Python import name uses underscores: `import vod_analyzer`.
+name = "vod-analyzer"
+
+# The version is declared dynamically — `tool.hatch.version` below tells
+# hatchling to read it from src/vod_analyzer/__init__.py. Single source of
+# truth: we only update __version__ in one place when bumping releases.
+dynamic = ["version"]
+
+description = "Analyze stream VODs and extract the best moments as horizontal and vertical clips."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+
+authors = [
+    { name = "Quentin Hamonic" },
+]
+
+keywords = [
+    "video",
+    "vod",
+    "stream",
+    "highlights",
+    "ffmpeg",
+    "twitch",
+    "youtube",
+]
+
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Multimedia :: Sound/Audio :: Analysis",
+    "Typing :: Typed",
+]
+
+# Runtime dependencies — empty for now; we'll add ffmpeg-python, librosa, etc.
+# in later phases as they become needed.
+dependencies = []
+
+[project.optional-dependencies]
+# Install with: pip install -e ".[dev]"
+# Optional dependency groups let users install only what they need.
+# `dev` is for contributors; runtime users don't need pytest, ruff, etc.
+dev = [
+    "pytest>=8.0",
+]
+
+[project.urls]
+# These URLs will be added when the GitHub repo exists (after Phase 0).
+# Homepage = "https://github.com/<user>/vod-analyzer"
+# Repository = "https://github.com/<user>/vod-analyzer"
+# Issues = "https://github.com/<user>/vod-analyzer/issues"
+
+# ---------------------------------------------------------------------------
+# Hatchling configuration
+# ---------------------------------------------------------------------------
+
+[tool.hatch.version]
+# Single source of truth for the version string.
+path = "src/vod_analyzer/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+# Tells hatchling where to find the package source when building a wheel.
+# We use the modern src/ layout, so the package lives at src/vod_analyzer/.
+packages = ["src/vod_analyzer"]
