@@ -1,13 +1,18 @@
 # pyproject.toml — project manifest (PEP 621)
-# This file declares the project metadata, dependencies, and build configuration.
-# It replaces the older setup.py / setup.cfg / requirements.txt combo.
+# This file declares the project metadata, dependencies, and tooling
+# configuration. It replaces the older setup.py / setup.cfg / requirements.txt
+# combination.
 
 [build-system]
-# `requires` lists the build-time dependencies (only used to package the project,
-# not to run it). `build-backend` tells pip which tool to invoke to build the
-# project. Hatchling is the modern PyPA-recommended choice.
+# `requires` lists the build-time dependencies (only used to package the
+# project, not to run it). `build-backend` tells pip which tool to invoke to
+# build the project. Hatchling is the modern PyPA-recommended choice.
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+# ---------------------------------------------------------------------------
+# Project metadata
+# ---------------------------------------------------------------------------
 
 [project]
 # The distribution name on PyPI (use dashes for the package distribution name).
@@ -63,6 +68,9 @@ dependencies = []
 # `dev` is for contributors; runtime users don't need pytest, ruff, etc.
 dev = [
     "pytest>=8.0",
+    "ruff>=0.6.0",
+    "mypy>=1.11",
+    "pre-commit>=3.7",
 ]
 
 [project.urls]
@@ -83,3 +91,78 @@ path = "src/vod_analyzer/__init__.py"
 # Tells hatchling where to find the package source when building a wheel.
 # We use the modern src/ layout, so the package lives at src/vod_analyzer/.
 packages = ["src/vod_analyzer"]
+
+# ---------------------------------------------------------------------------
+# Ruff (linter + formatter)
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = [".venv", "build", "dist", "docs/_build"]
+
+[tool.ruff.lint]
+# A pragmatic-but-strict baseline. We can broaden this set later as the
+# codebase matures. Each prefix is a category of rules; `ruff linter --help`
+# documents them all.
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes (unused imports/variables, undefined names, ...)
+    "W",    # pycodestyle warnings
+    "I",    # isort (import sorting)
+    "N",    # pep8-naming (consistent class / function / variable naming)
+    "UP",   # pyupgrade (use modern Python syntax)
+    "B",    # flake8-bugbear (likely bugs and design issues)
+    "C4",   # flake8-comprehensions (idiomatic comprehensions)
+    "SIM",  # flake8-simplify (suggest simpler equivalent code)
+    "A",    # flake8-builtins (don't shadow builtin names)
+    "RET",  # flake8-return (return statement consistency)
+    "PTH",  # flake8-use-pathlib (prefer pathlib over os.path)
+    "RUF",  # ruff-specific rules
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests are allowed a bit of slack.
+"tests/**/*.py" = [
+    "S101",  # assert usage is fine in tests
+]
+
+[tool.ruff.format]
+# Ruff's formatter is Black-compatible by design. These defaults match Black,
+# but we list them explicitly so any future tweak is obvious.
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true       # also format Python code blocks inside docstrings
+docstring-code-line-length = 88
+
+# ---------------------------------------------------------------------------
+# Mypy (static type checker)
+# ---------------------------------------------------------------------------
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src/vod_analyzer", "tests"]
+show_error_codes = true
+pretty = true
+
+# A separate, slightly looser config for tests. pytest decorators sometimes
+# lack stubs, and a missing annotation on a fixture should not block the
+# whole pipeline.
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_decorators = false
+
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = [
+    "-ra",                # short summary for all non-passed outcomes
+    "--strict-markers",   # error on undefined pytest markers
+    "--strict-config",    # error on unknown ini config options
+    "--showlocals",       # show local variables in tracebacks
+]

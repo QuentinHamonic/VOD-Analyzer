@@ -1,0 +1,66 @@
+# .pre-commit-config.yaml
+# Hooks that run automatically on every `git commit`. Install once with
+# `pre-commit install`. Run manually on the whole repo with
+# `pre-commit run --all-files`.
+#
+# Version pinning: every hook is pinned to a specific revision so that the
+# behaviour is reproducible. Run `pre-commit autoupdate` periodically to
+# bump to the latest versions.
+
+minimum_pre_commit_version: "3.7.0"
+
+# We intentionally do NOT pin `default_language_version` here.
+# On Linux/macOS the binary is `python3.11`; on Windows it's `python.exe`
+# behind the `py -3.11` launcher, with no `python3.11.exe` symlink.
+# Letting pre-commit pick the active Python keeps the config cross-platform,
+# and the project already requires Python >=3.11 via `requires-python` in
+# pyproject.toml, so the version is enforced at install time anyway.
+
+repos:
+  # General-purpose hygiene hooks maintained by the pre-commit team.
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        args: ["--maxkb=500"]
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+
+  # Ruff: linter (with auto-fix) and formatter.
+  # `ruff` (linter) runs first so any auto-fix happens before formatting.
+  # `ruff-format` enforces the canonical style afterwards.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+
+  # Mypy: static type checker. Reads its config from pyproject.toml.
+  #
+  # We use `language: system` (running mypy from the active virtualenv) rather
+  # than the isolated `mirrors-mypy` repo, because our `src/` layout requires
+  # mypy to "see" the installed `vod_analyzer` package to resolve imports in
+  # tests. With an isolated env, mypy would only know about the
+  # `additional_dependencies` we list, not the project itself, and it would
+  # report `import-not-found` errors on every `from vod_analyzer ...` line.
+  #
+  # Trade-off: every contributor must activate the project venv before
+  # committing, so that mypy is on the PATH. This is already the standard
+  # workflow for any Python project with a src/ layout, and CI installs the
+  # project the same way.
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: mypy
+        language: system
+        types: [python]
+        files: ^(src/|tests/)
+        args: ["--config-file=pyproject.toml"]
+        require_serial: true
