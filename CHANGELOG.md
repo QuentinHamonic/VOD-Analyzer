@@ -9,9 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- GitHub Actions CI workflow (lint, type-check, tests on Python 3.11 and 3.12).
-- `CHANGELOG.md` in Keep-a-Changelog format.
-- Expanded `README.md` with quickstart, usage, and roadmap link.
+- `core.ingest` module: `VodMetadata` dataclass, `load_vod(path)` (ffprobe
+  metadata extraction) and `extract_audio()` (mono 16-bit WAV via ffmpeg).
+- CLI command `vod-analyzer ingest <path>` (Typer) displaying metadata and
+  extracting audio, with `--sample-rate`, `--audio-out`, and `--verbose` flags.
+- `typer>=0.12` added as a runtime dependency; `vod-analyzer` script entry point
+  registered in `pyproject.toml`.
+- Synthetic ffmpeg fixture (`tests/conftest.py`) and 14 unit tests covering
+  metadata parsing and audio extraction (`tests/test_ingest.py`).
 
 ## [0.0.1] — 2026-05-02
 
