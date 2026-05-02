@@ -26,6 +26,6 @@ def test_package_exposes_version() -> None:
 
 def test_subpackages_are_importable() -> None:
     """All declared subpackages can be imported individually."""
-    import vod_analyzer.api  # noqa: F401
-    import vod_analyzer.cli  # noqa: F401
+    import vod_analyzer.api
+    import vod_analyzer.cli
     import vod_analyzer.core  # noqa: F401

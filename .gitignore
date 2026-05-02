@@ -58,3 +58,6 @@ temp/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Claude Code
+.claude/worktrees/
