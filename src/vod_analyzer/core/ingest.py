@@ -159,9 +159,8 @@ def extract_audio(
             status.
     """
     if output_path is None:
-        tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-        tmp.close()
-        output_path = Path(tmp.name)
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+            output_path = Path(tmp.name)
 
     logger.debug(
         "Extracting audio: %s → %s (sr=%d Hz)",
