@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(git worktree *)",
-      "Bash(git branch *)",
-      "Bash(py -3 -c ' *)"
-    ]
-  }
-}
