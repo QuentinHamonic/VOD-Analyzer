@@ -43,22 +43,16 @@ repos:
 
   # Mypy: static type checker. Reads its config from pyproject.toml.
   #
-  # We use `language: system` (running mypy from the active virtualenv) rather
-  # than the isolated `mirrors-mypy` repo, because our `src/` layout requires
-  # mypy to "see" the installed `vod_analyzer` package to resolve imports in
-  # tests. With an isolated env, mypy would only know about the
-  # `additional_dependencies` we list, not the project itself, and it would
-  # report `import-not-found` errors on every `from vod_analyzer ...` line.
-  #
-  # Trade-off: every contributor must activate the project venv before
-  # committing, so that mypy is on the PATH. This is already the standard
-  # workflow for any Python project with a src/ layout, and CI installs the
-  # project the same way.
+  # We use `python -m mypy` (language: system) rather than the isolated
+  # `mirrors-mypy` repo so that mypy can see the installed `vod_analyzer`
+  # package and resolve imports in tests without extra configuration.
+  # Using `python -m mypy` instead of bare `mypy` avoids PATH issues on
+  # Windows where the Scripts directory may not be on PATH.
   - repo: local
     hooks:
       - id: mypy
         name: mypy
-        entry: mypy
+        entry: python -m mypy
         language: system
         types: [python]
         files: ^(src/|tests/)

@@ -58,9 +58,13 @@ classifiers = [
     "Typing :: Typed",
 ]
 
-# Runtime dependencies — empty for now; we'll add ffmpeg-python, librosa, etc.
-# in later phases as they become needed.
-dependencies = []
+# Runtime dependencies — we add them phase by phase as they become needed.
+dependencies = [
+    "typer>=0.12",
+]
+
+[project.scripts]
+vod-analyzer = "vod_analyzer.cli.main:app"
 
 [project.optional-dependencies]
 # Install with: pip install -e ".[dev]"
@@ -146,11 +150,14 @@ files = ["src/vod_analyzer", "tests"]
 show_error_codes = true
 pretty = true
 
-# A separate, slightly looser config for tests. pytest decorators sometimes
-# lack stubs, and a missing annotation on a fixture should not block the
-# whole pipeline.
+# Tests: pytest decorators sometimes lack stubs.
 [[tool.mypy.overrides]]
 module = "tests.*"
+disallow_untyped_decorators = false
+
+# CLI: Typer's @app.command() decorator is not fully typed upstream.
+[[tool.mypy.overrides]]
+module = "vod_analyzer.cli.*"
 disallow_untyped_decorators = false
 
 # ---------------------------------------------------------------------------
