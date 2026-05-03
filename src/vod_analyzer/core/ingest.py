@@ -28,12 +28,28 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
+class AudioTrackInfo:
+    """Metadata for a single audio stream inside a VOD file.
+
+    Attributes:
+        index: Zero-based index among audio streams (``0:a:0``, ``0:a:1``, …).
+        codec: Short codec name as reported by ffprobe (e.g. ``"aac"``).
+        sample_rate: Sample rate in Hz.
+        channels: Number of audio channels (1 = mono, 2 = stereo, …).
+        channel_layout: Layout string as reported by ffprobe
+            (e.g. ``"stereo"``, ``"5.1"``). Empty string when not reported.
+    """
+
+    index: int
+    codec: str
+    sample_rate: int
+    channels: int
+    channel_layout: str
+
+
+@dataclass(frozen=True)
 class VodMetadata:
     """Metadata extracted from a VOD file via ``ffprobe``.
-
-    All fields are populated from the first video and audio stream found.
-    For audio-only files, *width*, *height*, *fps*, and *video_codec* are
-    set to their zero / empty-string defaults.
 
     Attributes:
         path: Absolute path to the source file.
@@ -41,9 +57,10 @@ class VodMetadata:
         width: Frame width in pixels (0 if no video stream).
         height: Frame height in pixels (0 if no video stream).
         fps: Average frame rate (0.0 if no video stream).
-        video_codec: Short codec name as reported by ffprobe (e.g. ``"h264"``).
-        audio_codec: Short codec name as reported by ffprobe (e.g. ``"aac"``).
-        sample_rate: Audio sample rate in Hz (0 if no audio stream).
+        video_codec: Short codec name of the first video stream
+            (e.g. ``"h264"``). Empty string when no video stream exists.
+        audio_tracks: All audio streams found in the file, in stream order.
+            Empty tuple for video-only files.
     """
 
     path: Path
@@ -52,8 +69,21 @@ class VodMetadata:
     height: int
     fps: float
     video_codec: str
-    audio_codec: str
-    sample_rate: int
+    audio_tracks: tuple[AudioTrackInfo, ...]
+
+    # ------------------------------------------------------------------
+    # Convenience properties (backwards-compatible shortcuts)
+    # ------------------------------------------------------------------
+
+    @property
+    def audio_codec(self) -> str:
+        """Codec of the first audio track, or empty string."""
+        return self.audio_tracks[0].codec if self.audio_tracks else ""
+
+    @property
+    def sample_rate(self) -> int:
+        """Sample rate of the first audio track in Hz, or 0."""
+        return self.audio_tracks[0].sample_rate if self.audio_tracks else 0
 
 
 def load_vod(path: Path | str) -> VodMetadata:
@@ -100,7 +130,7 @@ def load_vod(path: Path | str) -> VodMetadata:
         raise ValueError(f"No recognisable streams found in: {path}")
 
     video = next((s for s in streams if s.get("codec_type") == "video"), None)
-    audio = next((s for s in streams if s.get("codec_type") == "audio"), None)
+    audio_streams = [s for s in streams if s.get("codec_type") == "audio"]
 
     duration = float(str(fmt.get("duration", 0)))
 
@@ -115,11 +145,16 @@ def load_vod(path: Path | str) -> VodMetadata:
     else:
         fps, width, height, video_codec = 0.0, 0, 0, ""
 
-    if audio is not None:
-        audio_codec = str(audio.get("codec_name", ""))
-        sample_rate = int(str(audio.get("sample_rate", 0)))
-    else:
-        audio_codec, sample_rate = "", 0
+    audio_tracks = tuple(
+        AudioTrackInfo(
+            index=i,
+            codec=str(s.get("codec_name", "")),
+            sample_rate=int(str(s.get("sample_rate", 0))),
+            channels=int(str(s.get("channels", 0))),
+            channel_layout=str(s.get("channel_layout", "")),
+        )
+        for i, s in enumerate(audio_streams)
+    )
 
     return VodMetadata(
         path=path,
@@ -128,18 +163,18 @@ def load_vod(path: Path | str) -> VodMetadata:
         height=height,
         fps=fps,
         video_codec=video_codec,
-        audio_codec=audio_codec,
-        sample_rate=sample_rate,
+        audio_tracks=audio_tracks,
     )
 
 
 def extract_audio(
     metadata: VodMetadata,
     *,
+    audio_track: int = 0,
     sample_rate: int = 16_000,
     output_path: Path | None = None,
 ) -> Path:
-    """Extract the audio track from *metadata.path* to a mono WAV file.
+    """Extract one audio track from *metadata.path* to a mono WAV file.
 
     The output is always mono PCM 16-bit signed little-endian (``pcm_s16le``),
     which is the format expected by all downstream audio analysis modules
@@ -147,6 +182,9 @@ def extract_audio(
 
     Args:
         metadata: Metadata object returned by :func:`load_vod`.
+        audio_track: Zero-based index of the audio stream to extract
+            (default: ``0``). Use :attr:`VodMetadata.audio_tracks` to list
+            available tracks before choosing.
         sample_rate: Target sample rate in Hz (default: 16 000).
         output_path: Destination WAV path. When *None*, a temporary file is
             created; the caller is responsible for deleting it.
@@ -155,15 +193,23 @@ def extract_audio(
         Path to the extracted WAV file.
 
     Raises:
+        IndexError: If *audio_track* is out of range for this file.
         subprocess.CalledProcessError: If ``ffmpeg`` exits with a non-zero
             status.
     """
+    if metadata.audio_tracks and audio_track >= len(metadata.audio_tracks):
+        raise IndexError(
+            f"audio_track={audio_track} is out of range "
+            f"(file has {len(metadata.audio_tracks)} audio track(s))."
+        )
+
     if output_path is None:
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
             output_path = Path(tmp.name)
 
     logger.debug(
-        "Extracting audio: %s → %s (sr=%d Hz)",
+        "Extracting audio track %d: %s -> %s (sr=%d Hz)",
+        audio_track,
         metadata.path,
         output_path,
         sample_rate,
@@ -174,6 +220,8 @@ def extract_audio(
             "-y",
             "-i",
             str(metadata.path),
+            "-map",
+            f"0:a:{audio_track}",
             "-vn",
             "-acodec",
             "pcm_s16le",

@@ -2,7 +2,8 @@
 
 Coverage targets:
 - :func:`load_vod` — happy path, edge cases, error paths.
-- :func:`extract_audio` — output file, custom sample rate, custom path.
+- :func:`extract_audio` — output file, custom sample rate, custom path,
+  audio track selection.
 
 The ``tiny_vod`` fixture (defined in ``conftest.py``) provides a synthetic
 2-second MP4 generated once per session via ffmpeg.
@@ -16,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from vod_analyzer.core.ingest import VodMetadata, extract_audio, load_vod
+from vod_analyzer.core.ingest import AudioTrackInfo, VodMetadata, extract_audio, load_vod
 
 
 class TestLoadVod:
@@ -42,9 +43,30 @@ class TestLoadVod:
         meta = load_vod(tiny_vod)
         assert meta.video_codec == "h264"
 
-    def test_audio_codec(self, tiny_vod: Path) -> None:
+    def test_audio_tracks_is_tuple(self, tiny_vod: Path) -> None:
         meta = load_vod(tiny_vod)
-        assert meta.audio_codec == "aac"
+        assert isinstance(meta.audio_tracks, tuple)
+
+    def test_has_one_audio_track(self, tiny_vod: Path) -> None:
+        meta = load_vod(tiny_vod)
+        assert len(meta.audio_tracks) == 1
+
+    def test_audio_track_info(self, tiny_vod: Path) -> None:
+        meta = load_vod(tiny_vod)
+        track = meta.audio_tracks[0]
+        assert isinstance(track, AudioTrackInfo)
+        assert track.index == 0
+        assert track.codec == "aac"
+
+    def test_audio_codec_property(self, tiny_vod: Path) -> None:
+        """audio_codec convenience property returns first track codec."""
+        meta = load_vod(tiny_vod)
+        assert meta.audio_codec == meta.audio_tracks[0].codec
+
+    def test_sample_rate_property(self, tiny_vod: Path) -> None:
+        """sample_rate convenience property returns first track sample rate."""
+        meta = load_vod(tiny_vod)
+        assert meta.sample_rate == meta.audio_tracks[0].sample_rate
 
     def test_path_stored_on_metadata(self, tiny_vod: Path) -> None:
         meta = load_vod(tiny_vod)
@@ -101,8 +123,8 @@ class TestExtractAudio:
             text=True,
             check=True,
         )
-        info: dict[str, list[dict[str, str]]] = json.loads(result.stdout)
-        assert info["streams"][0]["sample_rate"] == "8000"
+        info2: dict[str, list[dict[str, str]]] = json.loads(result.stdout)
+        assert info2["streams"][0]["sample_rate"] == "8000"
 
     def test_output_is_mono(self, tiny_vod: Path, tmp_path: Path) -> None:
         meta = load_vod(tiny_vod)
@@ -114,5 +136,16 @@ class TestExtractAudio:
             text=True,
             check=True,
         )
-        info: dict[str, list[dict[str, int]]] = json.loads(result.stdout)
-        assert info["streams"][0]["channels"] == 1
+        info3: dict[str, list[dict[str, int]]] = json.loads(result.stdout)
+        assert info3["streams"][0]["channels"] == 1
+
+    def test_explicit_track_zero(self, tiny_vod: Path, tmp_path: Path) -> None:
+        meta = load_vod(tiny_vod)
+        out = tmp_path / "track0.wav"
+        extract_audio(meta, audio_track=0, output_path=out)
+        assert out.exists()
+
+    def test_out_of_range_track_raises(self, tiny_vod: Path) -> None:
+        meta = load_vod(tiny_vod)
+        with pytest.raises(IndexError):
+            extract_audio(meta, audio_track=99)
