@@ -38,12 +38,15 @@ pytest
 
 ## Usage
 
-> The CLI and analysis pipeline are under active development. See [ROADMAP.md](ROADMAP.md) for the delivery plan.
-
 ```bash
-# Coming in Phase 1
+# Ingest a VOD: display metadata and extract audio
 vod-analyzer ingest <path-to-vod>
+
+# With options
+vod-analyzer ingest my_stream.mp4 --sample-rate 44100 --audio-out audio.wav --verbose
 ```
+
+> Clip generation, transcription and highlight ranking are coming in later phases. See [ROADMAP.md](ROADMAP.md) for the full delivery plan.
 
 ## Development
 
@@ -69,9 +72,9 @@ See [ROADMAP.md](ROADMAP.md) for the full plan.
 
 | Phase | Description | Status |
 |---|---|---|
-| 0 | Foundations (tooling, CI, docs) | 🚧 In progress |
-| 1 | VOD ingestion | ⏳ Planned |
-| 2 | Audio highlight detection | ⏳ Planned |
+| 0 | Foundations (tooling, CI, docs) | ✅ Done |
+| 1 | VOD ingestion | ✅ Done |
+| 2 | Audio highlight detection | 🚧 In progress |
 | 3 | Horizontal clip generation | ⏳ Planned |
 | 4 | Vertical clip generation | ⏳ Planned |
 | 5 | Speech-to-text | ⏳ Planned |
