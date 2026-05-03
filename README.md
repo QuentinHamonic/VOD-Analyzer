@@ -76,7 +76,7 @@ See [ROADMAP.md](ROADMAP.md) for the full plan.
 | 0 | Foundations (tooling, CI, docs) | ✅ Done |
 | 1 | VOD ingestion | ✅ Done |
 | 2 | Audio highlight detection | ✅ Done |
-| 3 | Horizontal clip generation | 🚧 In progress |
+| 3 | Horizontal clip generation | ✅ Done |
 | 4 | Vertical clip generation | ⏳ Planned |
 | 5 | Speech-to-text | ⏳ Planned |
 | 6 | Speaker diarization | ⏳ Planned |
