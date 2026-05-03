@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `core.render.horizontal` module: `render_clip()` and `render_all()` — ffmpeg-based
+  horizontal clip extraction with `h264_fast` and `h264_balanced` presets and
+  configurable pre/post padding.
+- `RenderedClip` dataclass carrying path, source candidate and preset used.
+- CLI command `vod-analyzer clips horizontal <vod>` chaining ingestion, audio
+  energy detection and clip rendering end-to-end.
+- 15 unit tests covering output layout, presets, error paths and multi-clip rendering.
+
+## [0.0.3] — 2026-05-03
+
+### Added
+
 - `core.detect.audio_energy` module: `Candidate` dataclass and `detect()`
   function — RMS-energy-based highlight detection with configurable window,
   hop, threshold, and merging logic.

@@ -42,8 +42,9 @@ pytest
 # Ingest a VOD: display metadata and extract audio
 vod-analyzer ingest <path-to-vod>
 
-# With options
-vod-analyzer ingest my_stream.mp4 --sample-rate 44100 --audio-out audio.wav --verbose
+# Detect highlights and render horizontal clips
+vod-analyzer clips horizontal my_stream.mp4
+vod-analyzer clips horizontal my_stream.mp4 --output-dir ./out --preset h264_fast --threshold 0.4
 ```
 
 > Clip generation, transcription and highlight ranking are coming in later phases. See [ROADMAP.md](ROADMAP.md) for the full delivery plan.
@@ -74,8 +75,8 @@ See [ROADMAP.md](ROADMAP.md) for the full plan.
 |---|---|---|
 | 0 | Foundations (tooling, CI, docs) | ✅ Done |
 | 1 | VOD ingestion | ✅ Done |
-| 2 | Audio highlight detection | 🚧 In progress |
-| 3 | Horizontal clip generation | ⏳ Planned |
+| 2 | Audio highlight detection | ✅ Done |
+| 3 | Horizontal clip generation | 🚧 In progress |
 | 4 | Vertical clip generation | ⏳ Planned |
 | 5 | Speech-to-text | ⏳ Planned |
 | 6 | Speaker diarization | ⏳ Planned |
