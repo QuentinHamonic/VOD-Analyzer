@@ -6,24 +6,37 @@ Usage examples::
 
     vod-analyzer ingest my_vod.mp4
     vod-analyzer ingest my_vod.mp4 --sample-rate 44100 --audio-out audio.wav
-    vod-analyzer ingest my_vod.mp4 --verbose
+
+    vod-analyzer clips horizontal my_vod.mp4
+    vod-analyzer clips horizontal my_vod.mp4 --output-dir ./out --preset h264_fast
 """
 
 from __future__ import annotations
 
 import logging
+import tempfile
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
+from vod_analyzer.core.detect.audio_energy import detect
 from vod_analyzer.core.ingest import extract_audio, load_vod
+from vod_analyzer.core.render.horizontal import PRESETS, render_all
 
 app = typer.Typer(
     name="vod-analyzer",
     help="Analyze VODs and extract the best moments as clips.",
     add_completion=False,
 )
+
+clips_app = typer.Typer(help="Render highlight clips in various formats.")
+app.add_typer(clips_app, name="clips")
+
+
+# ---------------------------------------------------------------------------
+# vod-analyzer ingest
+# ---------------------------------------------------------------------------
 
 
 @app.command()
@@ -56,3 +69,88 @@ def ingest(
 
     wav = extract_audio(meta, sample_rate=sample_rate, output_path=audio_out)
     typer.echo(f"Audio out : {wav}")
+
+
+# ---------------------------------------------------------------------------
+# vod-analyzer clips horizontal
+# ---------------------------------------------------------------------------
+
+
+@clips_app.command("horizontal")
+def clips_horizontal(
+    path: Annotated[Path, typer.Argument(help="Path to the VOD file.")],
+    output_dir: Annotated[
+        Path,
+        typer.Option("--output-dir", "-o", help="Root directory for rendered clips."),
+    ] = Path("output"),
+    preset: Annotated[
+        str,
+        typer.Option("--preset", "-p", help=f"Encoder preset. Choices: {list(PRESETS)}."),
+    ] = "h264_balanced",
+    threshold: Annotated[
+        float,
+        typer.Option("--threshold", "-t", help="RMS energy threshold (0-1)."),
+    ] = 0.5,
+    max_candidates: Annotated[
+        int,
+        typer.Option("--max-candidates", "-n", help="Maximum number of clips to render."),
+    ] = 10,
+    pre_padding: Annotated[
+        float,
+        typer.Option("--pre-padding", help="Seconds of footage before each highlight."),
+    ] = 0.5,
+    post_padding: Annotated[
+        float,
+        typer.Option("--post-padding", help="Seconds of footage after each highlight."),
+    ] = 0.5,
+    verbose: Annotated[
+        bool,
+        typer.Option("--verbose", "-v", help="Enable debug logging."),
+    ] = False,
+) -> None:
+    """Detect highlights and render horizontal MP4 clips."""
+    if verbose:
+        logging.basicConfig(level=logging.DEBUG)
+
+    if not path.exists():
+        typer.echo(f"Error: file not found: {path}", err=True)
+        raise typer.Exit(code=1)
+
+    if preset not in PRESETS:
+        typer.echo(f"Error: unknown preset {preset!r}. Choose from: {list(PRESETS)}", err=True)
+        raise typer.Exit(code=1)
+
+    typer.echo(f"Ingesting  : {path}")
+    meta = load_vod(path)
+    typer.echo(f"Duration   : {meta.duration:.2f} s")
+
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        wav_path = Path(tmp.name)
+
+    typer.echo("Extracting audio...")
+    extract_audio(meta, output_path=wav_path)
+
+    typer.echo(f"Detecting highlights (threshold={threshold})...")
+    candidates = detect(wav_path, threshold=threshold, max_candidates=max_candidates)
+
+    if not candidates:
+        typer.echo("No highlights found. Try lowering --threshold.")
+        wav_path.unlink(missing_ok=True)
+        return
+
+    typer.echo(f"Found {len(candidates)} candidate(s). Rendering clips...")
+    clips = render_all(
+        path,
+        candidates,
+        output_dir,
+        preset=preset,
+        pre_padding=pre_padding,
+        post_padding=post_padding,
+    )
+
+    wav_path.unlink(missing_ok=True)
+
+    clip_dir = output_dir / meta.path.stem / "horizontal"
+    typer.echo(f"\nDone - {len(clips)} clip(s) written to {clip_dir}/")
+    for clip in clips:
+        typer.echo(f"  {clip.path.name}  (score={clip.candidate.score:.2f})")
