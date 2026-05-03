@@ -61,6 +61,7 @@ classifiers = [
 # Runtime dependencies — we add them phase by phase as they become needed.
 dependencies = [
     "typer>=0.12",
+    "librosa>=0.10",
 ]
 
 [project.scripts]
@@ -159,6 +160,11 @@ disallow_untyped_decorators = false
 [[tool.mypy.overrides]]
 module = "vod_analyzer.cli.*"
 disallow_untyped_decorators = false
+
+# Third-party libraries without bundled type stubs.
+[[tool.mypy.overrides]]
+module = ["librosa.*", "numpy.*"]
+ignore_missing_imports = true
 
 # ---------------------------------------------------------------------------
 # Pytest

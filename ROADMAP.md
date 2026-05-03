@@ -255,8 +255,8 @@ horizontal and vertical clips from a VOD entirely through the web UI.
 | #   | Phase                          | Status      | Depends on      | Key deliverables                                     |
 | --- | ------------------------------ | ----------- | --------------- | ---------------------------------------------------- |
 | 0   | Foundations                    | done        | —               | `pyproject.toml`, lint/test/CI, base layout, README+ |
-| 1   | VOD ingestion                  | in progress | 0               | `load_vod`, audio extraction, `cli ingest`           |
-| 2   | Audio highlight detection      | not started | 1               | RMS-energy detector, candidate list                  |
+| 1   | VOD ingestion                  | done        | 0               | `load_vod`, audio extraction, `cli ingest`           |
+| 2   | Audio highlight detection      | in progress | 1               | RMS-energy detector, candidate list                  |
 | 3   | Horizontal clip generation     | not started | 2               | ffmpeg-based horizontal clips, CLI                   |
 | 4   | Vertical clip generation       | not started | 3               | 9:16 clips (center-crop, then tracking)              |
 | 5   | Speech-to-text                 | not started | 1               | `faster-whisper` ASR backend, transcript             |
