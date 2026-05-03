@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `core.detect.audio_energy` module: `Candidate` dataclass and `detect()`
+  function — RMS-energy-based highlight detection with configurable window,
+  hop, threshold, and merging logic.
+- `librosa>=0.10` added as a runtime dependency.
+- 17 unit tests on synthetic WAV signals (silence, single peak, multi-peak).
+
+## [0.0.2] — 2026-05-03
+
+### Added
+
 - `core.ingest` module: `VodMetadata` dataclass, `load_vod(path)` (ffprobe
   metadata extraction) and `extract_audio()` (mono 16-bit WAV via ffmpeg).
 - CLI command `vod-analyzer ingest <path>` (Typer) displaying metadata and
