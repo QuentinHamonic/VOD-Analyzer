@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Multi-track audio support: `AudioTrackInfo` dataclass and `audio_tracks`
+  field on `VodMetadata` expose all audio streams with codec, sample rate,
+  channels and layout. Convenience properties `audio_codec` and `sample_rate`
+  preserve backward compatibility.
+- `extract_audio()` gains an `audio_track` parameter (default: ``0``) mapped
+  to ffmpeg's ``-map 0:a:N`` to target any audio stream.
+- `--audio-track` option on both `vod-analyzer ingest` and
+  `vod-analyzer clips horizontal`. The `ingest` command now lists all
+  available audio tracks and marks the selected one.
+
+## [0.0.4] — 2026-05-03
+
+### Added
+
 - `core.render.horizontal` module: `render_clip()` and `render_all()` — ffmpeg-based
   horizontal clip extraction with `h264_fast` and `h264_balanced` presets and
   configurable pre/post padding.

@@ -46,6 +46,10 @@ def ingest(
         int,
         typer.Option("--sample-rate", "-r", help="Audio sample rate for the extracted WAV (Hz)."),
     ] = 16_000,
+    audio_track: Annotated[
+        int,
+        typer.Option("--audio-track", "-a", help="Zero-based audio stream index to extract."),
+    ] = 0,
     audio_out: Annotated[
         Path | None,
         typer.Option("--audio-out", "-o", help="Destination WAV path. Defaults to a temp file."),
@@ -65,9 +69,25 @@ def ingest(
     typer.echo(f"Duration  : {meta.duration:.2f} s")
     typer.echo(f"Resolution: {meta.width}x{meta.height} @ {meta.fps:.2f} fps")
     typer.echo(f"Video     : {meta.video_codec}")
-    typer.echo(f"Audio     : {meta.audio_codec} @ {meta.sample_rate} Hz")
 
-    wav = extract_audio(meta, sample_rate=sample_rate, output_path=audio_out)
+    if meta.audio_tracks:
+        typer.echo(f"Audio tracks ({len(meta.audio_tracks)}):")
+        for track in meta.audio_tracks:
+            marker = " <-- selected" if track.index == audio_track else ""
+            typer.echo(
+                f"  [{track.index}] {track.codec} "
+                f"{track.sample_rate} Hz "
+                f"{track.channels}ch ({track.channel_layout}){marker}"
+            )
+    else:
+        typer.echo("Audio     : none")
+
+    wav = extract_audio(
+        meta,
+        audio_track=audio_track,
+        sample_rate=sample_rate,
+        output_path=audio_out,
+    )
     typer.echo(f"Audio out : {wav}")
 
 
@@ -87,6 +107,10 @@ def clips_horizontal(
         str,
         typer.Option("--preset", "-p", help=f"Encoder preset. Choices: {list(PRESETS)}."),
     ] = "h264_balanced",
+    audio_track: Annotated[
+        int,
+        typer.Option("--audio-track", "-a", help="Zero-based audio stream index to analyse."),
+    ] = 0,
     threshold: Annotated[
         float,
         typer.Option("--threshold", "-t", help="RMS energy threshold (0-1)."),
@@ -127,8 +151,8 @@ def clips_horizontal(
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
         wav_path = Path(tmp.name)
 
-    typer.echo("Extracting audio...")
-    extract_audio(meta, output_path=wav_path)
+    typer.echo(f"Extracting audio track {audio_track}...")
+    extract_audio(meta, audio_track=audio_track, output_path=wav_path)
 
     typer.echo(f"Detecting highlights (threshold={threshold})...")
     candidates = detect(wav_path, threshold=threshold, max_candidates=max_candidates)
