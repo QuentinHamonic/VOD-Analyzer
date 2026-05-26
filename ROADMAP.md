@@ -97,6 +97,16 @@ tooling, CI, and contributor-facing documentation.
 workflow is green on the branch, and a fresh clone can run `pip install -e .[dev]`
 and `pytest` successfully.
 
+#### ✅ Livraison — Phase 0
+
+- `pyproject.toml` PEP 621 avec hatchling, `src/` layout, groupes de dépendances.
+- `ruff` (lint + format), `mypy` strict, `pytest` configurés dans `pyproject.toml`.
+- `pre-commit` avec trailing-whitespace, end-of-file, YAML/TOML, large-files, merge-conflict, mixed-line-ending, ruff, mypy.
+- GitHub Actions CI (lint + tests) sur push/PR.
+- `README.md`, `ROADMAP.md`, `CHANGELOG.md` initialisés.
+- **Tests :** 1 smoke test (import du package).
+- **Commit de référence :** `4c183e2`
+
 ### Phase 1 — VOD ingestion
 
 The first end-to-end vertical slice: load a local video file, extract its
@@ -112,6 +122,15 @@ audio track, and report basic metadata.
 **Definition of Done:** `vod-analyzer ingest` works on a real test VOD and
 produces both a metadata dump and a usable audio file.
 
+#### ✅ Livraison — Phase 1
+
+- `core.ingest` : `VodMetadata` (frozen dataclass), `load_vod()` via ffprobe JSON, `extract_audio()` vers WAV mono 16 kHz.
+- CLI `vod-analyzer ingest <path>` avec `--sample-rate`, `--audio-out`, `--verbose`.
+- Ajout ultérieur (unreleased) : `AudioTrackInfo`, `audio_tracks` sur `VodMetadata`, `--audio-track` sur `ingest` et `clips horizontal` — commit `b77d68d`.
+- **Tests :** 14 tests unitaires (parsing metadata, extraction audio, fixture `tiny_vod`).
+- **Commit de référence :** `46f0d65` (phase 1), `b77d68d` (multi-track audio)
+- **Limites :** pas de validation du format vidéo (ffprobe détecte les erreurs à l'exécution).
+
 ### Phase 2 — Audio highlight detection (POC)
 
 First detector: a naive but useful audio-energy-based highlight finder.
@@ -123,6 +142,14 @@ First detector: a naive but useful audio-energy-based highlight finder.
 
 **Definition of Done:** Running the detector on the test VOD returns a
 non-empty, ranked list of plausible candidate windows.
+
+#### ✅ Livraison — Phase 2
+
+- `core.detect.audio_energy` : `Candidate(start, end, score, source)` frozen dataclass, `detect()` avec RMS via librosa, fenêtrage configurable, merging des pics adjacents, tri par score décroissant.
+- Paramètres : `threshold`, `window_size`, `hop_size`, `max_candidates`, `merge_gap`.
+- **Tests :** 17 tests sur signaux WAV synthétiques (silence, pic unique, multi-pics).
+- **Commit de référence :** `a9d8278`
+- **Limites :** détecteur naïf basé sur l'énergie brute — insensible au contenu sémantique (rires, réactions). Phases 5-7 adresseront ça.
 
 ### Phase 3 — Horizontal clip generation
 
@@ -136,6 +163,16 @@ Turn a list of candidates into ready-to-share horizontal clips.
 
 **Definition of Done:** Running the CLI on the test VOD writes playable
 horizontal MP4s to disk for every candidate.
+
+#### ✅ Livraison — Phase 3
+
+- `core.render.horizontal` : `render_clip()` et `render_all()` via subprocess ffmpeg (args en liste, pas de shell=True). Input seeking (`-ss` avant `-i`) pour la vitesse.
+- Presets `h264_fast` (CRF 28, ultrafast) et `h264_balanced` (CRF 23, medium).
+- Layout de sortie : `output/<vod_id>/horizontal/<index>_<slug>.mp4`.
+- CLI `vod-analyzer clips horizontal <vod>` chaîne ingest → detect → render.
+- **Tests :** 15 tests (layout, presets, erreurs, multi-clips).
+- **Commit de référence :** `043079a`
+- **Limites :** pas de configuration TOML des presets (paramètres CLI uniquement pour l'instant).
 
 ### Phase 4 — Vertical clip generation
 
@@ -152,6 +189,17 @@ shipping useful clips early.
 **Definition of Done:** Each candidate is available in both horizontal and
 vertical format, and Stage B noticeably outperforms Stage A on a clip with
 camera movement.
+
+#### ✅ Livraison — Phase 4 (Stage A uniquement)
+
+- `core.render._models` : `RenderedClip` partagé entre les renderers (horizontal le ré-exporte pour compatibilité).
+- `core.render.vertical` : `_center_crop_filter()` (gère landscape, carré, portrait), `render_clip()` et `render_all()` avec filtre ffmpeg `crop`.
+- CLI `vod-analyzer clips vertical <vod>` — mêmes options que `clips horizontal`.
+- **Tests :** 24 tests — 6 unitaires sur `_center_crop_filter` (sans I/O), 18 tests d'intégration (layout, presets, erreurs, multi-clips).
+- **Commit de référence :** `3cae98b`
+- **Limites / reste à faire :**
+  - Stage B (face/action tracking via opencv) **délibérément différé** — hors scope pour l'instant, à reprendre si le contenu le justifie (IRL, webcam plein écran).
+  - Le DoD original demandait Stage B. La décision de le différer est explicite et assumée.
 
 ### Phase 5 — Speech-to-text
 
