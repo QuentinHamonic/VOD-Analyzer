@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `core.render.vertical` module: `render_clip()` and `render_all()` — 9:16
+  center-crop renderer using the ffmpeg `crop` filter. Handles landscape,
+  square, and portrait sources. Shared `RenderedClip` dataclass moved to
+  `core.render._models` and re-exported from `core.render.horizontal`.
+- CLI command `vod-analyzer clips vertical <vod>` chains ingestion, audio
+  energy detection, and vertical clip rendering end-to-end.
+- 24 unit and integration tests: 6 pure-logic tests on `_center_crop_filter`,
+  18 render tests (output layout, presets, error paths, multi-clip).
+
+### Changed
+
+- `RenderedClip` dataclass relocated from `core.render.horizontal` to
+  `core.render._models`; `horizontal` re-exports it — no breaking change.
+
 - Multi-track audio support: `AudioTrackInfo` dataclass and `audio_tracks`
   field on `VodMetadata` expose all audio streams with codec, sample rate,
   channels and layout. Convenience properties `audio_codec` and `sample_rate`

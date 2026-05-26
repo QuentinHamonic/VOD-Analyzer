@@ -45,6 +45,10 @@ vod-analyzer ingest <path-to-vod>
 # Detect highlights and render horizontal clips
 vod-analyzer clips horizontal my_stream.mp4
 vod-analyzer clips horizontal my_stream.mp4 --output-dir ./out --preset h264_fast --threshold 0.4
+
+# Detect highlights and render vertical (9:16) clips
+vod-analyzer clips vertical my_stream.mp4
+vod-analyzer clips vertical my_stream.mp4 --output-dir ./out --preset h264_fast --threshold 0.4
 ```
 
 > Clip generation, transcription and highlight ranking are coming in later phases. See [ROADMAP.md](ROADMAP.md) for the full delivery plan.
@@ -77,7 +81,7 @@ See [ROADMAP.md](ROADMAP.md) for the full plan.
 | 1 | VOD ingestion | ✅ Done |
 | 2 | Audio highlight detection | ✅ Done |
 | 3 | Horizontal clip generation | ✅ Done |
-| 4 | Vertical clip generation | ⏳ Planned |
+| 4 | Vertical clip generation | ✅ Done |
 | 5 | Speech-to-text | ⏳ Planned |
 | 6 | Speaker diarization | ⏳ Planned |
 | 7 | LLM highlight scoring | ⏳ Planned |
