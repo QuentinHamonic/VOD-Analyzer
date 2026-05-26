@@ -45,9 +45,16 @@ vod-analyzer ingest <path-to-vod>
 # Detect highlights and render horizontal clips
 vod-analyzer clips horizontal my_stream.mp4
 vod-analyzer clips horizontal my_stream.mp4 --output-dir ./out --preset h264_fast --threshold 0.4
+
+# Render vertical (9:16) clips
+vod-analyzer clips vertical my_stream.mp4
+
+# Transcribe speech with Whisper
+vod-analyzer transcribe my_stream.mp4
+vod-analyzer transcribe my_stream.mp4 --model small --language fr --vad --output-json transcript.json
 ```
 
-> Clip generation, transcription and highlight ranking are coming in later phases. See [ROADMAP.md](ROADMAP.md) for the full delivery plan.
+> Speaker diarization, LLM scoring and multi-signal fusion are coming in later phases. See [ROADMAP.md](ROADMAP.md) for the full delivery plan.
 
 ## Development
 
@@ -77,8 +84,8 @@ See [ROADMAP.md](ROADMAP.md) for the full plan.
 | 1 | VOD ingestion | ✅ Done |
 | 2 | Audio highlight detection | ✅ Done |
 | 3 | Horizontal clip generation | ✅ Done |
-| 4 | Vertical clip generation | ⏳ Planned |
-| 5 | Speech-to-text | ⏳ Planned |
+| 4 | Vertical clip generation | ✅ Done |
+| 5 | Speech-to-text | ✅ Done |
 | 6 | Speaker diarization | ⏳ Planned |
 | 7 | LLM highlight scoring | ⏳ Planned |
 | 8 | Multi-signal fusion | ⏳ Planned |

@@ -13,6 +13,7 @@ Usage examples::
 
 from __future__ import annotations
 
+import json
 import logging
 import tempfile
 from pathlib import Path
@@ -23,6 +24,7 @@ import typer
 from vod_analyzer.core.detect.audio_energy import detect
 from vod_analyzer.core.ingest import extract_audio, load_vod
 from vod_analyzer.core.render.horizontal import PRESETS, render_all
+from vod_analyzer.core.transcribe.faster_whisper import FasterWhisperBackend
 
 app = typer.Typer(
     name="vod-analyzer",
@@ -89,6 +91,111 @@ def ingest(
         output_path=audio_out,
     )
     typer.echo(f"Audio out : {wav}")
+
+
+# ---------------------------------------------------------------------------
+# vod-analyzer transcribe
+# ---------------------------------------------------------------------------
+
+
+@app.command()
+def transcribe(
+    path: Annotated[Path, typer.Argument(help="Path to the VOD file.")],
+    model: Annotated[
+        str,
+        typer.Option(
+            "--model",
+            "-m",
+            help="Whisper model size: tiny, base, small, medium, large-v3.",
+        ),
+    ] = "base",
+    language: Annotated[
+        str | None,
+        typer.Option(
+            "--language",
+            "-l",
+            help="BCP-47 language code (e.g. 'fr', 'en'). Auto-detected when omitted.",
+        ),
+    ] = None,
+    audio_track: Annotated[
+        int,
+        typer.Option("--audio-track", "-a", help="Zero-based audio stream index to transcribe."),
+    ] = 0,
+    vad: Annotated[
+        bool,
+        typer.Option("--vad/--no-vad", help="Enable VAD filter to skip silent segments."),
+    ] = False,
+    output_json: Annotated[
+        Path | None,
+        typer.Option("--output-json", "-o", help="Write transcript as JSON to this path."),
+    ] = None,
+    device: Annotated[
+        str,
+        typer.Option("--device", help="Inference device: cpu or cuda."),
+    ] = "cpu",
+    compute_type: Annotated[
+        str,
+        typer.Option("--compute-type", help="Quantisation type: int8, float16, float32."),
+    ] = "int8",
+    verbose: Annotated[
+        bool,
+        typer.Option("--verbose", "-v", help="Enable debug logging."),
+    ] = False,
+) -> None:
+    """Transcribe a VOD using Whisper and print time-aligned segments."""
+    if verbose:
+        logging.basicConfig(level=logging.DEBUG)
+
+    if not path.exists():
+        typer.echo(f"Error: file not found: {path}", err=True)
+        raise typer.Exit(code=1)
+
+    typer.echo(f"Ingesting  : {path}")
+    meta = load_vod(path)
+    typer.echo(f"Duration   : {meta.duration:.2f} s")
+
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        wav_path = Path(tmp.name)
+
+    typer.echo(f"Extracting audio track {audio_track}...")
+    extract_audio(meta, audio_track=audio_track, output_path=wav_path)
+
+    typer.echo(f"Loading Whisper model '{model}'...")
+    backend = FasterWhisperBackend(model_size=model, device=device, compute_type=compute_type)
+
+    typer.echo("Transcribing" + (" (VAD enabled)" if vad else "") + "...")
+    segments = backend.transcribe(wav_path, language=language, vad_filter=vad)
+
+    wav_path.unlink(missing_ok=True)
+
+    if not segments:
+        typer.echo("No speech detected.")
+        return
+
+    typer.echo(f"\n{len(segments)} segment(s):\n")
+    for seg in segments:
+        typer.echo(f"  [{seg.start:6.2f}s → {seg.end:6.2f}s]  {seg.text}")
+
+    if output_json is not None:
+        data = [
+            {
+                "start": seg.start,
+                "end": seg.end,
+                "text": seg.text,
+                "words": [
+                    {
+                        "start": w.start,
+                        "end": w.end,
+                        "text": w.text,
+                        "probability": w.probability,
+                    }
+                    for w in seg.words
+                ],
+            }
+            for seg in segments
+        ]
+        output_json.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        typer.echo(f"\nTranscript saved to {output_json}")
 
 
 # ---------------------------------------------------------------------------

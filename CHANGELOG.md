@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.5] — 2026-05-27
+
+### Added
+
+- `core.transcribe` package: `ASRBackend` Protocol, `TranscriptSegment` and
+  `Word` frozen dataclasses, and `FasterWhisperBackend` wrapping
+  `faster-whisper`.
+- Configurable model size (`--model`), language (`--language`), device
+  (`--device`), quantisation (`--compute-type`), and VAD pre-filter
+  (`--vad/--no-vad`).
+- CLI command `vod-analyzer transcribe <vod>` with optional `--output-json`
+  for machine-readable output.
+- `faster-whisper>=1.0` added as a runtime dependency.
+- 19 unit tests (all mocked — no model download required in CI).
+
+## [0.0.4-post1] — 2026-05-27
+
 ### Added
 
 - Multi-track audio support: `AudioTrackInfo` dataclass and `audio_tracks`

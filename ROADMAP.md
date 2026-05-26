@@ -137,6 +137,14 @@ Turn a list of candidates into ready-to-share horizontal clips.
 **Definition of Done:** Running the CLI on the test VOD writes playable
 horizontal MP4s to disk for every candidate.
 
+#### ✅ Livraison — Phase 3
+
+- `core.render.horizontal`: `render_clip()` + `render_all()` with `h264_fast` / `h264_balanced` presets and configurable padding.
+- `RenderedClip` frozen dataclass (path, candidate, preset) in `core.render._models`.
+- CLI command `vod-analyzer clips horizontal <vod>` (full pipeline: ingest → detect → render).
+- 15 tests in `tests/test_horizontal.py` (output layout, presets, error paths, multi-clip).
+- Commits: `043079a` (renderer + CLI), `72a0653` (docs).
+
 ### Phase 4 — Vertical clip generation
 
 Render the same candidates in 9:16. Two stages so the project keeps
@@ -153,6 +161,16 @@ shipping useful clips early.
 vertical format, and Stage B noticeably outperforms Stage A on a clip with
 camera movement.
 
+#### ✅ Livraison — Phase 4
+
+- `core.render.vertical`: `_center_crop_filter(width, height)` (pure function) + `render_clip()` + `render_all()` for 9:16 crops.
+- Handles portrait-source edge case (source narrower than 9:16 target → crops height instead).
+- CLI command `vod-analyzer clips vertical <vod>` mirroring the horizontal command.
+- 24 tests in `tests/test_vertical.py` (6 unit on crop math, 18 integration with `tiny_vod` 320×240).
+- Stage B (opencv subject tracking) explicitly deferred — out of scope for Phase 4.
+- 79 tests total on the branch at delivery.
+- Commits: `3cae98b` (renderer + CLI + tests), `e51b9b0` (roadmap + docs).
+
 ### Phase 5 — Speech-to-text
 
 Add a transcript so that downstream phases can reason about content.
@@ -165,6 +183,16 @@ Add a transcript so that downstream phases can reason about content.
 
 **Definition of Done:** Transcription runs end-to-end on the test VOD, with
 timestamps that align (within a small tolerance) with the original audio.
+
+#### ✅ Livraison — Phase 5
+
+- `core.transcribe._models`: `Word` + `TranscriptSegment` frozen dataclasses with word-level timestamps.
+- `core.transcribe.backend`: `ASRBackend` runtime-checkable `Protocol`.
+- `core.transcribe.faster_whisper`: `FasterWhisperBackend` — configurable model size, device, compute type, language, VAD filter; graceful `ImportError` if `faster-whisper` is absent.
+- CLI command `vod-analyzer transcribe <vod>` with `--model`, `--language`, `--audio-track`, `--vad/--no-vad`, `--device`, `--compute-type`, `--output-json`, `--verbose`.
+- `faster-whisper>=1.0` added as a runtime dependency; `faster_whisper.*` exempted from mypy strict stubs.
+- 19 tests in `tests/test_transcribe.py` — fully mocked (no model download required in CI).
+- Commits: on branch `feat/phase-5-speech-to-text`.
 
 ### Phase 6 — Speaker diarization
 
@@ -257,9 +285,9 @@ horizontal and vertical clips from a VOD entirely through the web UI.
 | 0   | Foundations                    | done        | —               | `pyproject.toml`, lint/test/CI, base layout, README+ |
 | 1   | VOD ingestion                  | done        | 0               | `load_vod`, audio extraction, `cli ingest`           |
 | 2   | Audio highlight detection      | done        | 1               | RMS-energy detector, candidate list                  |
-| 3   | Horizontal clip generation     | in progress | 2               | ffmpeg-based horizontal clips, CLI                   |
-| 4   | Vertical clip generation       | not started | 3               | 9:16 clips (center-crop, then tracking)              |
-| 5   | Speech-to-text                 | not started | 1               | `faster-whisper` ASR backend, transcript             |
+| 3   | Horizontal clip generation     | done        | 2               | ffmpeg-based horizontal clips, CLI                   |
+| 4   | Vertical clip generation       | done        | 3               | 9:16 clips (center-crop, Stage A)                    |
+| 5   | Speech-to-text                 | done        | 1               | `faster-whisper` ASR backend, transcript             |
 | 6   | Speaker diarization            | not started | 5               | `pyannote` diarization, speaker-labeled segments     |
 | 7   | LLM highlight scoring          | not started | 5               | LLM client, scored segments, score cache             |
 | 8   | Multi-signal fusion            | not started | 2, 7            | unified ranked highlight list                        |

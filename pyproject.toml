@@ -62,6 +62,7 @@ classifiers = [
 dependencies = [
     "typer>=0.12",
     "librosa>=0.10",
+    "faster-whisper>=1.0",
 ]
 
 [project.scripts]
@@ -163,7 +164,7 @@ disallow_untyped_decorators = false
 
 # Third-party libraries without bundled type stubs.
 [[tool.mypy.overrides]]
-module = ["librosa.*", "numpy.*"]
+module = ["librosa.*", "numpy.*", "faster_whisper.*"]
 ignore_missing_imports = true
 
 # ---------------------------------------------------------------------------
